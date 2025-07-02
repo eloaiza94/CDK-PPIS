@@ -1,4 +1,36 @@
 import streamlit as st
+
+st.markdown(
+    """
+    <style>
+    body {
+        background: linear-gradient(135deg, #f9f7f7, #dbe2ef, #3f72af);
+        color: #112d4e;
+    }
+    h1, h2, h3 {
+        font-family: 'Trebuchet MS', sans-serif;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+    .stButton>button {
+        background-color: #3f72af;
+        color: white;
+        border-radius: 12px;
+        padding: 0.5em 1em;
+        font-weight: bold;
+        transition: 0.3s;
+    }
+    .stButton>button:hover {
+        background-color: #112d4e;
+        transform: scale(1.05);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.title("Welcome to the Fancy Streamlit App")
+st.write("This is your freshly styled application. Bask in its glory.")
+
 import pandas as pd
 import re
 
