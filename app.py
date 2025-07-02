@@ -163,9 +163,12 @@ if st.button("Generate Match Report") and estimate_file and cdk_text.strip():
                 "and I want to see if they're supposed to be on the estimate:\n\n"
             )
             for _, row in missing_estimate_lines.iterrows():
+                if pd.notnull(row["CDK Price"]):
+                    price_str = f"${row['CDK Price']:.2f}"
+                else:
+                    price_str = "N/A"
                 first_email += (
-                    f"- {row['Part Number']} | {row['Description']} | "
-                    f"${row['CDK Price']:.2f if pd.notnull(row['CDK Price']) else 'N/A'}\n"
+                    f"- {row['Part Number']} | {row['Description']} | {price_str}\n"
                 )
             st.subheader("📩 Email for Estimator (Missing in Estimate):")
             st.code(first_email, language="markdown")
@@ -194,9 +197,12 @@ if st.button("Generate Match Report") and estimate_file and cdk_text.strip():
                 "Also can you look into these for me and let me know if we forgot to bill them out please:\n\n"
             )
             for _, row in missing_cdk_lines.iterrows():
+                if pd.notnull(row["Estimate Price"]):
+                    price_str = f"${row['Estimate Price']:.2f}"
+                else:
+                    price_str = "N/A"
                 second_email += (
-                    f"- {row['Part Number']} | {row['Description']} | "
-                    f"${row['Estimate Price']:.2f if pd.notnull(row['Estimate Price']) else 'N/A'}\n"
+                    f"- {row['Part Number']} | {row['Description']} | {price_str}\n"
                 )
 
         if second_email.strip() != "":
