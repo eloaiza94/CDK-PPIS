@@ -207,10 +207,11 @@ if st.button("Generate Match Report") and estimate_file and cdk_text.strip():
             pdf.cell(25, 8, f"{row['CDK Price']}" if pd.notnull(row["CDK Price"]) else "-", border=1)
             pdf.ln()
 
-        pdf_bytes = pdf.output(dest="S").encode("latin1")
-        b64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
-        href = f'<a href="data:application/pdf;base64,{b64_pdf}" download="match_report.pdf">📄 Download Match Report as PDF</a>'
-        st.markdown(href, unsafe_allow_html=True)
+	pdf_bytes = pdf.output(dest="S")  # NO .encode()
+	b64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
+	href = f'<a href="data:application/pdf;base64,{b64_pdf}" download="match_report.pdf">Download PDF</a>'
+	st.markdown(href, unsafe_allow_html=True)
+
 
         # Email 1: Missing in Estimate
         missing_estimate = match_df[match_df["Match Report"].str.contains("Missing in Estimate")]
