@@ -92,8 +92,10 @@ if st.button("Generate Match Report") and estimate_file and cdk_text.strip():
                     continue
         cdk_df = pd.DataFrame(cdk_lines)
 
-        # Perform matching
+        # 🔄 🔥 NEW TWO-WAY MATCHING LOGIC STARTS HERE
         matches = []
+
+        # 1) Loop over estimate parts
         for _, est in estimate_clean.iterrows():
             est_part = est["Part Number"]
             est_qty = est["Quantity"]
@@ -129,8 +131,25 @@ if st.button("Generate Match Report") and estimate_file and cdk_text.strip():
                     "CDK Quantity": None,
                     "Estimate Price": est_price,
                     "CDK Price": None,
-                    "Match Report": "No Match Found"
+                    "Match Report": "❌ Missing in CDK"
                 })
+
+        # 2) Loop over CDK parts and catch extras not in estimate
+        for _, cdk in cdk_df.iterrows():
+            cdk_part = cdk["Part Number"]
+            est_match = estimate_clean[estimate_clean["Part Number"] == cdk_part]
+            if est_match.empty:
+                matches.append({
+                    "Estimate Line #": "-",
+                    "Part Number": cdk_part,
+                    "Description": cdk["CDK Description"],
+                    "Estimate Quantity": None,
+                    "CDK Quantity": cdk["CDK Quantity"],
+                    "Estimate Price": None,
+                    "CDK Price": cdk["CDK Price"],
+                    "Match Report": "❌ Missing in Estimate"
+                })
+        # 🔄 🔥 NEW TWO-WAY MATCHING LOGIC ENDS HERE
 
         match_df = pd.DataFrame(matches)
 
@@ -138,7 +157,7 @@ if st.button("Generate Match Report") and estimate_file and cdk_text.strip():
         def color_code_status(row):
             if row["Match Report"] == "Matched by Part #, Qty & Price":
                 return "✅ Perfect Match"
-            elif "No Match Found" in row["Match Report"]:
+            elif "No Match" in row["Match Report"]:
                 return "❌ No Match"
             else:
                 return "⚠️ Discrepancy"
