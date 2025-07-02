@@ -2,7 +2,9 @@ import streamlit as st
 import pandas as pd
 import re
 from fpdf import FPDF
+from io import BytesIO
 import base64
+from fpdf.enums import XPos, YPos
 
 st.set_page_config(page_title="Estimate vs CDK Cross-Reference", layout="centered")
 
@@ -59,15 +61,8 @@ st.markdown(
 st.title("Estimate vs CDK Cross-Reference Tool")
 st.write("Upload your estimate Excel file and paste your CDK parts list below. Get a detailed match report instantly!")
 
-# Upload estimate Excel
 estimate_file = st.file_uploader("Upload Estimate Excel", type=["xlsx"])
-
-# Input CDK text
 cdk_text = st.text_area("Paste CDK Parts List", height=300)
-
-# Add RO number and customer last name fields
-ro_number = st.text_input("Enter RO Number (optional)")
-customer_lastname = st.text_input("Enter Customer Last Name (optional)")
 
 if st.button("Generate Match Report") and estimate_file and cdk_text.strip():
     with st.spinner("Processing..."):
@@ -98,9 +93,10 @@ if st.button("Generate Match Report") and estimate_file and cdk_text.strip():
                     continue
         cdk_df = pd.DataFrame(cdk_lines)
 
-        # Two-way matching
+        # 🔄 Two-way matching logic
         matches = []
-        # 1) Loop over estimate parts
+
+        # Loop over estimate parts
         for _, est in estimate_clean.iterrows():
             est_part = est["Part Number"]
             est_qty = est["Quantity"]
@@ -139,7 +135,7 @@ if st.button("Generate Match Report") and estimate_file and cdk_text.strip():
                     "Match Report": "❌ Missing in CDK"
                 })
 
-        # 2) Loop over CDK parts for extras not in estimate
+        # Loop over CDK parts to find extras
         for _, cdk in cdk_df.iterrows():
             cdk_part = cdk["Part Number"]
             est_match = estimate_clean[estimate_clean["Part Number"] == cdk_part]
@@ -157,12 +153,11 @@ if st.button("Generate Match Report") and estimate_file and cdk_text.strip():
 
         match_df = pd.DataFrame(matches)
 
-        # Color-coded status & missing flags
         def color_code_status(row):
             if row["Match Report"] == "Matched by Part #, Qty & Price":
                 return "✅ Perfect Match"
-            elif "No Match" in row["Match Report"] or "Missing" in row["Match Report"]:
-                return "❌ Issue"
+            elif "Missing" in row["Match Report"]:
+                return "❌ No Match"
             else:
                 return "⚠️ Discrepancy"
         match_df["Color Coded Match Report"] = match_df.apply(color_code_status, axis=1)
@@ -179,54 +174,40 @@ if st.button("Generate Match Report") and estimate_file and cdk_text.strip():
         st.success("Match Report Generated!")
         st.dataframe(match_df, use_container_width=True)
 
-        # Generate PDF
+        csv = match_df.to_csv(index=False).encode('utf-8')
+        st.download_button("Download Report as CSV", csv, "match_report.csv", "text/csv")
+
+        # ✅ PDF generation
         pdf = FPDF()
         pdf.add_page()
-        pdf.set_font("Arial", "B", 16)
-        pdf.cell(0, 10, "Estimate vs CDK Match Report", ln=1, align="C")
-        pdf.set_font("Arial", "", 12)
-        if ro_number:
-            pdf.cell(0, 10, f"RO Number: {ro_number}", ln=1)
-        if customer_lastname:
-            pdf.cell(0, 10, f"Customer: {customer_lastname}", ln=1)
-        pdf.ln(5)
+        pdf.set_font("Helvetica", "B", 16)
+        pdf.cell(0, 10, "Estimate vs CDK Match Report", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.set_font("Helvetica", "", 10)
 
-        col_widths = [20, 30, 60, 20, 20, 25, 25]
-        headers = ["Line", "Part #", "Description", "Est Qty", "CDK Qty", "Est Price", "CDK Price"]
-        for w, h in zip(col_widths, headers):
-            pdf.cell(w, 8, h, border=1)
+        # Table header
+        pdf.cell(15, 8, "Line #", border=1)
+        pdf.cell(30, 8, "Part #", border=1)
+        pdf.cell(50, 8, "Description", border=1)
+        pdf.cell(20, 8, "Est Qty", border=1)
+        pdf.cell(20, 8, "CDK Qty", border=1)
+        pdf.cell(25, 8, "Est Price", border=1)
+        pdf.cell(25, 8, "CDK Price", border=1)
         pdf.ln()
 
+        # Table rows
         for _, row in match_df.iterrows():
-            pdf.cell(20, 8, str(row["Estimate Line #"]), border=1)
-            pdf.cell(30, 8, row["Part Number"], border=1)
-            pdf.cell(60, 8, row["Description"][:30], border=1)
+            pdf.cell(15, 8, str(row["Estimate Line #"]), border=1)
+            pdf.cell(30, 8, str(row["Part Number"]), border=1)
+            pdf.cell(50, 8, str(row["Description"])[:30], border=1)
             pdf.cell(20, 8, str(row["Estimate Quantity"]), border=1)
             pdf.cell(20, 8, str(row["CDK Quantity"]), border=1)
-            pdf.cell(25, 8, f"{row['Estimate Price']}" if pd.notnull(row["Estimate Price"]) else "-", border=1)
-            pdf.cell(25, 8, f"{row['CDK Price']}" if pd.notnull(row["CDK Price"]) else "-", border=1)
+            pdf.cell(25, 8, f"{row['Estimate Price']}" if pd.notnull(row["Estimate Price"]) else "", border=1)
+            pdf.cell(25, 8, f"{row['CDK Price']}" if pd.notnull(row["CDK Price"]) else "", border=1)
             pdf.ln()
 
-	pdf_bytes = pdf.output(dest="S")  # NO .encode()
-	b64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
-	href = f'<a href="data:application/pdf;base64,{b64_pdf}" download="match_report.pdf">Download PDF</a>'
-	st.markdown(href, unsafe_allow_html=True)
-
-
-        # Email 1: Missing in Estimate
-        missing_estimate = match_df[match_df["Match Report"].str.contains("Missing in Estimate")]
-        email1 = f"Hey Deshunn, can you look into these for me please? They're billed out and I want to see if they're supposed to be on the estimate:\n\n"
-        for _, row in missing_estimate.iterrows():
-            email1 += f"• {row['Part Number']} - {row['Description']} (${row['CDK Price']})\n"
-        st.text_area("Email to Estimator", email1, height=200)
-
-        # Email 2: RFC & Missing in CDK
-        rfc_items = match_df[match_df["Description"].str.contains("RFC", case=False, na=False)]
-        email2 = "Can we get these taken off of the ticket please:\n\n"
-        for _, row in rfc_items.iterrows():
-            email2 += f"• {row['Part Number']} - {row['Description']} (${row['Estimate Price']}, Qty: {row['Estimate Quantity']})\n"
-        email2 += "\n\n\nAlso can you look into these for me and let me know if we forgot to bill them out please!\n\n"
-        missing_cdk = match_df[match_df["Match Report"].str.contains("Missing in CDK")]
-        for _, row in missing_cdk.iterrows():
-            email2 += f"• {row['Part Number']} - {row['Description']} (${row['Estimate Price']})\n"
-        st.text_area("Email to Parts Department", email2, height=300)
+        pdf_buffer = BytesIO()
+        pdf.output(pdf_buffer)
+        pdf_bytes = pdf_buffer.getvalue()
+        b64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
+        href = f'<a href="data:application/pdf;base64,{b64_pdf}" download="match_report.pdf">📄 Download Report as PDF</a>'
+        st.markdown(href, unsafe_allow_html=True)
