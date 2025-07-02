@@ -1,42 +1,58 @@
 import streamlit as st
+import pandas as pd
+import re
+
+st.set_page_config(page_title="Estimate vs CDK Cross-Reference", layout="centered")
 
 st.markdown(
     """
     <style>
     body {
-        background: linear-gradient(135deg, #f9f7f7, #dbe2ef, #3f72af);
-        color: #112d4e;
+        background-color: #1e1e1e;
+        color: #e0e0e0;
+        font-family: 'Helvetica Neue', sans-serif;
+    }
+    .stApp {
+        max-width: 800px;
+        margin: 0 auto;
+        padding-top: 2rem;
     }
     h1, h2, h3 {
-        font-family: 'Trebuchet MS', sans-serif;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        color: #f5f5f5;
+        text-align: center;
     }
     .stButton>button {
-        background-color: #3f72af;
+        background-color: #0a84ff;
         color: white;
-        border-radius: 12px;
-        padding: 0.5em 1em;
-        font-weight: bold;
-        transition: 0.3s;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6em 1.2em;
+        font-weight: 600;
+        transition: all 0.2s ease-in-out;
     }
     .stButton>button:hover {
-        background-color: #112d4e;
+        background-color: #0066cc;
         transform: scale(1.05);
+    }
+    .stTextInput>div>div>input {
+        background-color: #2c2c2c;
+        color: #e0e0e0;
+        border: none;
+        border-radius: 6px;
+        padding: 0.5em;
+    }
+    .stTextInput>div>div>input:focus {
+        outline: 2px solid #0a84ff;
+    }
+    .stMarkdown p {
+        font-size: 1.1em;
+        line-height: 1.6;
+        text-align: center;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
-
-st.title("Welcome to the Fancy Streamlit App")
-st.write("This is your freshly styled application. Bask in its glory.")
-
-st.button("Click me!")
-
-import pandas as pd
-import re
-
-st.set_page_config(page_title="Estimate vs CDK Cross-Reference", layout="wide")
 
 st.title("Estimate vs CDK Cross-Reference Tool")
 st.write("Upload your estimate Excel file and paste your CDK parts list below. Get a detailed match report instantly!")
