@@ -177,17 +177,20 @@ if st.button("Generate Match Report") and estimate_file and cdk_text.strip():
         csv = match_df.to_csv(index=False).encode('utf-8')
         st.download_button("Download Report as CSV", csv, "match_report.csv", "text/csv")
 
-        # ✅ PDF generation in LANDSCAPE with adjusted column widths
-        pdf = FPDF(orientation="L")  # Landscape mode
+        # ✅ PDF generation in LANDSCAPE with adjusted columns
+        pdf = FPDF(orientation="L")
         pdf.add_page()
         pdf.set_font("Helvetica", "B", 16)
         pdf.cell(0, 10, "Estimate vs CDK Match Report", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        pdf.set_font("Helvetica", "", 10)
+        pdf.set_font("Helvetica", "", 9)
 
-        # Column widths for landscape page (~265mm total)
-        col_widths = [20, 35, 80, 20, 20, 40, 40]
+        # Column widths adding up to ~250mm
+        col_widths = [15, 25, 60, 15, 15, 25, 25, 40, 30]
 
-        headers = ["Line #", "Part #", "Description", "Est Qty", "CDK Qty", "Est Price", "CDK Price"]
+        headers = [
+            "Line #", "Part #", "Description", "Est Qty", "CDK Qty",
+            "Est Price", "CDK Price", "Match Report", "Status"
+        ]
 
         # Table header
         for i, header in enumerate(headers):
@@ -198,11 +201,13 @@ if st.button("Generate Match Report") and estimate_file and cdk_text.strip():
         for _, row in match_df.iterrows():
             pdf.cell(col_widths[0], 8, str(row["Estimate Line #"]), border=1)
             pdf.cell(col_widths[1], 8, str(row["Part Number"]), border=1)
-            pdf.cell(col_widths[2], 8, str(row["Description"])[:40], border=1)
+            pdf.cell(col_widths[2], 8, str(row["Description"])[:35], border=1)
             pdf.cell(col_widths[3], 8, str(row["Estimate Quantity"]), border=1)
             pdf.cell(col_widths[4], 8, str(row["CDK Quantity"]), border=1)
             pdf.cell(col_widths[5], 8, f"{row['Estimate Price']}" if pd.notnull(row["Estimate Price"]) else "", border=1)
             pdf.cell(col_widths[6], 8, f"{row['CDK Price']}" if pd.notnull(row["CDK Price"]) else "", border=1)
+            pdf.cell(col_widths[7], 8, str(row["Match Report"])[:25], border=1)
+            pdf.cell(col_widths[8], 8, str(row["Color Coded Match Report"]), border=1)
             pdf.ln()
 
         pdf_buffer = BytesIO()
