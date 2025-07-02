@@ -177,20 +177,23 @@ if st.button("Generate Match Report") and estimate_file and cdk_text.strip():
         csv = match_df.to_csv(index=False).encode('utf-8')
         st.download_button("Download Report as CSV", csv, "match_report.csv", "text/csv")
 
-        # ✅ PDF generation in LANDSCAPE with adjusted columns
+        # ✅ PDF generation in LANDSCAPE with adjusted columns and stripped emojis
         pdf = FPDF(orientation="L")
         pdf.add_page()
         pdf.set_font("Helvetica", "B", 16)
         pdf.cell(0, 10, "Estimate vs CDK Match Report", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.set_font("Helvetica", "", 9)
 
-        # Column widths adding up to ~250mm
         col_widths = [15, 25, 60, 15, 15, 25, 25, 40, 30]
 
         headers = [
             "Line #", "Part #", "Description", "Est Qty", "CDK Qty",
             "Est Price", "CDK Price", "Match Report", "Status"
         ]
+
+        # Helper: strip emojis for PDF output
+        def strip_emoji(text):
+            return text.replace("✅", "Perfect").replace("❌", "No Match").replace("⚠️", "Discrepancy")
 
         # Table header
         for i, header in enumerate(headers):
@@ -207,7 +210,7 @@ if st.button("Generate Match Report") and estimate_file and cdk_text.strip():
             pdf.cell(col_widths[5], 8, f"{row['Estimate Price']}" if pd.notnull(row["Estimate Price"]) else "", border=1)
             pdf.cell(col_widths[6], 8, f"{row['CDK Price']}" if pd.notnull(row["CDK Price"]) else "", border=1)
             pdf.cell(col_widths[7], 8, str(row["Match Report"])[:25], border=1)
-            pdf.cell(col_widths[8], 8, str(row["Color Coded Match Report"]), border=1)
+            pdf.cell(col_widths[8], 8, strip_emoji(str(row["Color Coded Match Report"])), border=1)
             pdf.ln()
 
         pdf_buffer = BytesIO()
