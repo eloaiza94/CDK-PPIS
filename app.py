@@ -155,8 +155,14 @@ if st.button("Generate Match Report") and estimate_file and cdk_text.strip():
         csv = match_df.to_csv(index=False).encode('utf-8')
         st.download_button("Download Report as CSV", csv, "match_report.csv", "text/csv")
 
-        # 📧 First email: for estimator - Missing in Estimate
-        missing_estimate_lines = match_df[match_df["Match Report"] == "❌ Missing in Estimate"]
+        # 📧 Identify RFC lines separately for parts email
+        rfc_lines = estimate_clean[estimate_clean["Description"].str.contains("RFC", case=False, na=False)]
+
+        # 📧 Estimator email - Missing in Estimate lines excluding RFC
+        missing_estimate_lines = match_df[
+            (match_df["Match Report"] == "❌ Missing in Estimate") &
+            (~match_df["Description"].str.contains("RFC", case=False, na=False))
+        ]
         if not missing_estimate_lines.empty:
             first_email = (
                 "Hey Deshunn can you look into these for me please they're billed out "
@@ -175,9 +181,7 @@ if st.button("Generate Match Report") and estimate_file and cdk_text.strip():
         else:
             st.info("No 'Missing in Estimate' items found for estimator email.")
 
-        # 📧 Second email: for parts department
-        # Part 1: RFC lines
-        rfc_lines = estimate_clean[estimate_clean["Description"].str.contains("RFC", case=False, na=False)]
+        # 📧 Parts department email
         second_email = ""
         if not rfc_lines.empty:
             second_email += "Can we get these taken off of the ticket please:\n\n"
@@ -187,10 +191,8 @@ if st.button("Generate Match Report") and estimate_file and cdk_text.strip():
                     f"${row['Extended Price']:.2f} | Qty: {row['Quantity']}\n"
                 )
 
-        # Add line breaks for paragraph spacing
         second_email += "\n\n\n"
 
-        # Part 2: Missing in CDK lines
         missing_cdk_lines = match_df[match_df["Match Report"] == "❌ Missing in CDK"]
         if not missing_cdk_lines.empty:
             second_email += (
